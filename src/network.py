@@ -21,9 +21,25 @@ from src.util import show_setting
 class MyNetwork(AlexNet):
     def __init__(self):
         super().__init__()
-
         # [TODO] Modify feature extractor part in AlexNet
-
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # [TODO: Optional] Modify this as well if you want

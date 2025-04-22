@@ -6,11 +6,19 @@ BATCH_SIZE          = 512
 VAL_EVERY_N_EPOCH   = 1
 
 NUM_EPOCHS          = 40
-OPTIMIZER_PARAMS    = {'type': 'SGD', 'lr': 0.005, 'momentum': 0.9}
+
+# Optimize Configs
+
+# SGD Config
+OPTIMIZER_PARAMS = {'type': 'SGD', 'lr': 0.005, 'momentum': 0.9}
+# # AdamW Config
+# OPTIMIZER_PARAMS = {'type': 'AdamW', 'lr': 0.001, 'weight_decay': 1e-4}
+
+# Scheduler Config
 SCHEDULER_PARAMS    = {'type': 'MultiStepLR', 'milestones': [30, 35], 'gamma': 0.2}
 
 # Dataaset
-DATASET_ROOT_PATH   = 'datasets/'
+DATASET_ROOT_PATH   = os.path.join(os.getcwd(), 'datasets')
 NUM_WORKERS         = 8
 
 # Augmentation

@@ -1,5 +1,5 @@
 # Dataset & Logs
-datasets/*
+src/datasets/*
 wandb/*
 lightning_logs/*
 
