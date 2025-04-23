@@ -12,7 +12,7 @@ from torchvision.models.alexnet import AlexNet
 import torch
 
 # Custom packages
-from src.metric import MyAccuracy
+from src.metric import MyAccuracy, MyF1Score
 import src.config as cfg
 from src.util import show_setting
 
@@ -22,24 +22,6 @@ class MyNetwork(AlexNet):
     def __init__(self):
         super().__init__()
         # [TODO] Modify feature extractor part in AlexNet
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-        )
-        
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # [TODO: Optional] Modify this as well if you want
@@ -65,6 +47,7 @@ class SimpleClassifier(LightningModule):
         else:
             models_list = models.list_models()
             assert model_name in models_list, f'Unknown model name: {model_name}. Choose one from {", ".join(models_list)}'
+            # only get the layer
             self.model = models.get_model(model_name, num_classes=num_classes)
 
         # Loss function
@@ -72,9 +55,19 @@ class SimpleClassifier(LightningModule):
 
         # Metric
         self.accuracy = MyAccuracy()
+        self.f1_score = MyF1Score(num_classes=num_classes)
 
         # Hyperparameters
         self.save_hyperparameters()
+    
+    @staticmethod
+    def _macro_average_f1_score(f1_scores: torch.Tensor) -> float:
+        return f1_scores.mean().item()
+    
+    @staticmethod
+    def _weighted_average_f1_score(f1_scores: torch.Tensor, weights: torch.Tensor) -> float:
+        return (f1_scores * weights).sum().item() / weights.sum().item()
+        
 
     def on_train_start(self):
         show_setting(cfg)
@@ -95,14 +88,18 @@ class SimpleClassifier(LightningModule):
     def training_step(self, batch, batch_idx):
         loss, scores, y = self._common_step(batch)
         accuracy = self.accuracy(scores, y)
-        self.log_dict({'loss/train': loss, 'accuracy/train': accuracy},
+        f1_score = self.f1_score(scores, y)
+        self.log_dict({'loss/train': loss, 'accuracy/train': accuracy, 
+                       'f1_score/train': f1_score, 'lr/train': self.optimizers().param_groups[0]['lr']},
                       on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss, scores, y = self._common_step(batch)
         accuracy = self.accuracy(scores, y)
-        self.log_dict({'loss/val': loss, 'accuracy/val': accuracy},
+        f1_score = self.f1_score(scores, y)
+        self.log_dict({'loss/val': loss, 'accuracy/val': accuracy,
+                       'f1_score/val': f1_score, 'lr/val': self.optimizers().param_groups[0]['lr']},
                       on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self._wandb_log_image(batch, batch_idx, scores, frequency = cfg.WANDB_IMG_LOG_FREQ)
 
