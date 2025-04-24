@@ -2,7 +2,7 @@ import os
 
 # Training Hyperparameters
 NUM_CLASSES         = 200
-BATCH_SIZE          = 512
+BATCH_SIZE          = 64
 VAL_EVERY_N_EPOCH   = 1
 
 NUM_EPOCHS          = 120
@@ -36,7 +36,7 @@ MODEL_NAME          = 'vit_b_16'
 
 # Compute related
 ACCELERATOR         = 'gpu'
-DEVICES             = [2]
+DEVICES             = [1]
 PRECISION_STR       = '32-true'
 
 # Logging

@@ -42,11 +42,12 @@ class TinyImageNetDatasetModule(LightningDataModule):
 
     def train_dataloader(self):
         if "vit" in cfg.MODEL_NAME:
+            print(f'[DEBUG: {__name__}] {cfg.IMAGE_RESIZE_FOR_VIT}')
             tf_train = transforms.Compose([
                 transforms.Resize(cfg.IMAGE_RESIZE_FOR_VIT), # default: billinear interpolation
                 transforms.RandomRotation(cfg.IMAGE_ROTATION),
                 transforms.RandomHorizontalFlip(cfg.IMAGE_FLIP_PROB),
-                transforms.RandomCrop(cfg.IMAGE_NUM_CROPS, padding=cfg.IMAGE_PAD_CROPS),
+                # transforms.RandomCrop(cfg.IMAGE_NUM_CROPS, padding=cfg.IMAGE_PAD_CROPS),
                 transforms.ToTensor(),
                 transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
             ])
