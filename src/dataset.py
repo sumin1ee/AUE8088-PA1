@@ -12,7 +12,7 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
 # Custom packages
-import config as cfg
+import src.config as cfg
 
 
 class TinyImageNetDatasetModule(LightningDataModule):
@@ -26,6 +26,7 @@ class TinyImageNetDatasetModule(LightningDataModule):
         '''called only once and on 1 GPU'''
         if not os.path.exists(os.path.join(cfg.DATASET_ROOT_PATH, self.__DATASET_NAME__)):
             # download data
+            print(cfg.DATASET_ROOT_PATH)
             print(colored("\nDownloading dataset...", color='green', attrs=('bold',)))
             filename = self.__DATASET_NAME__ + '.tar'
             wget.download(f'https://hyu-aue8088.s3.ap-northeast-2.amazonaws.com/{filename}')
@@ -40,13 +41,23 @@ class TinyImageNetDatasetModule(LightningDataModule):
             os.remove(filename)
 
     def train_dataloader(self):
-        tf_train = transforms.Compose([
-            transforms.RandomRotation(cfg.IMAGE_ROTATION),
-            transforms.RandomHorizontalFlip(cfg.IMAGE_FLIP_PROB),
-            transforms.RandomCrop(cfg.IMAGE_NUM_CROPS, padding=cfg.IMAGE_PAD_CROPS),
-            transforms.ToTensor(),
-            transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
-        ])
+        if "vit" in cfg.MODEL_NAME:
+            tf_train = transforms.Compose([
+                transforms.Resize(cfg.IMAGE_RESIZE_FOR_VIT), # default: billinear interpolation
+                transforms.RandomRotation(cfg.IMAGE_ROTATION),
+                transforms.RandomHorizontalFlip(cfg.IMAGE_FLIP_PROB),
+                transforms.RandomCrop(cfg.IMAGE_NUM_CROPS, padding=cfg.IMAGE_PAD_CROPS),
+                transforms.ToTensor(),
+                transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
+            ])
+        else:
+            tf_train = transforms.Compose([
+                transforms.RandomRotation(cfg.IMAGE_ROTATION),
+                transforms.RandomHorizontalFlip(cfg.IMAGE_FLIP_PROB),
+                transforms.RandomCrop(cfg.IMAGE_NUM_CROPS, padding=cfg.IMAGE_PAD_CROPS),
+                transforms.ToTensor(),
+                transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
+            ])
         dataset = ImageFolder(os.path.join(cfg.DATASET_ROOT_PATH, self.__DATASET_NAME__, 'train'), tf_train)
         msg = f"[Train]\t root dir: {dataset.root}\t | # of samples: {len(dataset):,}"
         print(colored(msg, color='blue', attrs=('bold',)))
@@ -60,10 +71,17 @@ class TinyImageNetDatasetModule(LightningDataModule):
         )
 
     def val_dataloader(self):
-        tf_val = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
-        ])
+        if "vit" in cfg.MODEL_NAME:
+            tf_val = transforms.Compose([
+                transforms.Resize(cfg.IMAGE_RESIZE_FOR_VIT),
+                transforms.ToTensor(),
+                transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
+            ])
+        else:
+            tf_val = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
+            ])
         dataset = ImageFolder(os.path.join(cfg.DATASET_ROOT_PATH, self.__DATASET_NAME__, 'val'), tf_val)
         msg = f"[Val]\t root dir: {dataset.root}\t | # of samples: {len(dataset):,}"
         print(colored(msg, color='blue', attrs=('bold',)))
@@ -76,10 +94,17 @@ class TinyImageNetDatasetModule(LightningDataModule):
         )
 
     def test_dataloader(self):
-        tf_test = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
-        ])
+        if "vit" in cfg.MODEL_NAME:
+            tf_test = transforms.Compose([
+                transforms.Resize(cfg.IMAGE_RESIZE_FOR_VIT),
+                transforms.ToTensor(),
+                transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
+            ])
+        else:
+            tf_test = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(cfg.IMAGE_MEAN, cfg.IMAGE_STD),
+            ])
         dataset = ImageFolder(os.path.join(cfg.DATASET_ROOT_PATH, self.__DATASET_NAME__, 'test'), tf_test)
         msg = f"[Test]\t root dir: {dataset.root}\t | # of samples: {len(dataset):,}"
         print(colored(msg, color='blue', attrs=('bold',)))
