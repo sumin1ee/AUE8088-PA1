@@ -12,7 +12,7 @@ from torchvision.models.alexnet import AlexNet
 import torch
 
 # Custom packages
-from src.metric import MyAccuracy, MyF1Score
+from src.metric import MyAccuracy, MyF1ScoreConf, MyF1ScoreOvR
 import src.config as cfg
 from src.util import show_setting
 
@@ -55,7 +55,7 @@ class SimpleClassifier(LightningModule):
 
         # Metric
         self.accuracy = MyAccuracy()
-        self.f1_score = MyF1Score(num_classes=num_classes)
+        self.f1_score = MyF1ScoreOvR(num_classes=num_classes)
 
         # Hyperparameters
         self.save_hyperparameters()
@@ -67,7 +67,6 @@ class SimpleClassifier(LightningModule):
     @staticmethod
     def _weighted_average_f1_score(f1_scores: torch.Tensor, weights: torch.Tensor) -> float:
         return (f1_scores * weights).sum().item() / weights.sum().item()
-        
 
     def on_train_start(self):
         show_setting(cfg)
@@ -88,23 +87,24 @@ class SimpleClassifier(LightningModule):
     def training_step(self, batch, batch_idx):
         loss, scores, y = self._common_step(batch)
         accuracy = self.accuracy(scores, y)
-        precision, recall, f1_score = self.f1_score(scores, y)
-        f1_score = self._macro_average_f1_score(f1_score)
+        # precision, recall, f1_score = self.f1_score(scores, y)
+        # f1_score = self._macro_average_f1_score(f1_score)
         
-        self.log_dict({'loss/train': loss, 'accuracy/train': accuracy, 
-                       'f1_score/train': f1_score, 'lr/train': self.optimizers().param_groups[0]['lr']},
+        self.log_dict({'loss/train': loss, 'accuracy/train': accuracy, 'lr/train': self.optimizers().param_groups[0]['lr']},
                       on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss, scores, y = self._common_step(batch)
         accuracy = self.accuracy(scores, y)
-        precision, recall, f1_score = self.f1_score(scores, y)
-        f1_score = self._macro_average_f1_score(f1_score)
-        self.log_dict({'loss/val': loss, 'accuracy/val': accuracy,
-                       'f1_score/val': f1_score, 'lr/val': self.optimizers().param_groups[0]['lr']},
+        self.f1_score.update(scores, y)
+        self.log_dict({'loss/val': loss, 'accuracy/val': accuracy, 'lr/val': self.optimizers().param_groups[0]['lr']},
                       on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self._wandb_log_image(batch, batch_idx, scores, frequency = cfg.WANDB_IMG_LOG_FREQ)
+    
+    def on_validation_epoch_end(self):
+        f1_score = self.f1_score.compute()
+        self.log_dict({'f1_score/val': f1_score}, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
     def _common_step(self, batch):
         x, y = batch

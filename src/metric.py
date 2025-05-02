@@ -1,7 +1,7 @@
 from torchmetrics import Metric
 import torch
 
-class MyF1Score(Metric):
+class MyF1ScoreConf(Metric):
     def __init__(self, num_classes: int = 200):
         super().__init__()
         self.num_classes = num_classes
@@ -45,7 +45,7 @@ class MyF1Score(Metric):
         return precision, recall, f1_score
 
 # [TODO] Implement this!
-class MyF1ScoreV2(Metric):
+class MyF1ScoreOvR(Metric):
     def __init__(self, num_classes: int = 200):
         super().__init__()
         self.num_classes = num_classes
@@ -86,7 +86,7 @@ class MyF1ScoreV2(Metric):
         recall = self.tp / (self.tp + self.fn + epsilon)
         
         f1_score = 2 * (precision * recall) / (precision + recall + epsilon) 
-        return f1_score
+        return f1_score.mean().item()
 
 class MyAccuracy(Metric):
     def __init__(self):
@@ -128,8 +128,8 @@ def main():
     num_classes = 3
 
     acc = MyAccuracy()
-    f1_confmat = MyF1Score(num_classes)
-    f1_manual = MyF1ScoreV2(num_classes)
+    f1_confmat = MyF1ScoreConf(num_classes)
+    f1_manual = MyF1ScoreOvR(num_classes)
 
     # update
     acc.update(preds, target)

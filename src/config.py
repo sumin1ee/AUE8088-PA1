@@ -2,10 +2,10 @@ import os
 
 # Training Hyperparameters
 NUM_CLASSES         = 200
-BATCH_SIZE          = 64
+BATCH_SIZE          = 512
 VAL_EVERY_N_EPOCH   = 1
 
-NUM_EPOCHS          = 120
+NUM_EPOCHS          = 50
 
 # Optimize Configs
 
@@ -16,7 +16,7 @@ OPTIMIZER_PARAMS    = {'type': 'AdamW', 'lr': 0.005, 'weight_decay': 1e-4}
 
 # Scheduler Config
 # SCHEDULER_PARAMS    = {'type': 'MultiStepLR', 'milestones': [30, 35], 'gamma': 0.2}
-SCHEDULER_PARAMS    = {'type': 'CosineAnnealingWarmRestarts', 'T_0': 20, 'T_mult': 2, 'eta_min': 1e-5}
+SCHEDULER_PARAMS    = {'type': 'CosineAnnealingWarmRestarts', 'T_0': 10, 'T_mult': 4, 'eta_min': 1e-5}
 
 # Dataset
 DATASET_ROOT_PATH   = os.path.join(os.getcwd(), 'src/datasets')
@@ -32,15 +32,15 @@ IMAGE_STD           = [0.2302, 0.2265, 0.2262]
 IMAGE_RESIZE_FOR_VIT = 224
 
 # Network
-MODEL_NAME          = 'vit_b_16'
+MODEL_NAME          = 'resnet152'
 
 # Compute related
 ACCELERATOR         = 'gpu'
-DEVICES             = [1]
+DEVICES             = [0]
 PRECISION_STR       = '32-true'
 
 # Logging
-WANDB_PROJECT       = 'aue8088-pa1'
+WANDB_PROJECT       = 'aue8088-pa1-comparing-models'
 WANDB_ENTITY        = os.environ.get('WANDB_ENTITY')
 print(f'WANDB_ENTITY: {WANDB_ENTITY}')
 WANDB_SAVE_DIR      = 'wandb/'
