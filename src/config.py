@@ -2,22 +2,27 @@ import os
 
 # Training Hyperparameters
 NUM_CLASSES         = 200
-BATCH_SIZE          = 2048
+BATCH_SIZE          = 512
 VAL_EVERY_N_EPOCH   = 1
 
-NUM_EPOCHS          = 50
+NUM_EPOCHS          = 100
 
 # Optimize Configs
-OPTIMIZER_PARAMS = {'type': 'SGD', 'lr': 0.01, 'momentum': 0.9}
+# OPTIMIZER_PARAMS = {'type': 'SGD', 'lr': 0.005, 'momentum': 0.9}
 # OPTIMIZER_PARAMS = {'type': 'RMSprop', 'lr': 0.01, 'alpha': 0.99}
-# OPTIMIZER_PARAMS    = {'type': 'AdamW', 'lr': 0.01, 'weight_decay': 1e-4}
+OPTIMIZER_PARAMS    = {'type': 'AdamW', 'lr': 0.003, 'weight_decay': 1e-4}
 # OPTIMIZER_PARAMS = {'type': 'Adam', 'lr': 0.01, 'betas': (0.9, 0.999)}
 # OPTIMIZER_PARAMS = {'type': 'Adagrad', 'lr': 0.01}
 # OPTIMIZER_PARAMS = {'type': 'Adadelta', 'lr': 0.01}
 
 # Scheduler Config4
+SCHEDULER_PARAMS    = {'type': 'StepLR', 'step_size': 10, 'gamma': 0.1}
 # SCHEDULER_PARAMS    = {'type': 'MultiStepLR', 'milestones': [30, 35], 'gamma': 0.2}
-SCHEDULER_PARAMS    = {'type': 'CosineAnnealingWarmRestarts', 'T_0': 10, 'T_mult': 4, 'eta_min': 1e-5}
+# SCHEDULER_PARAMS    = {'type': 'ExponentialLR', 'gamma': 0.9}
+# SCHEDULER_PARAMS    = {'type': 'CyclicLR', 'base_lr': 0.001, 'max_lr': 0.1, 'step_size_up': 5, 'mode': 'triangular2'}
+# SCHEDULER_PARAMS    = {'type': 'CosineAnnealingLR', 'T_max': 50, 'eta_min': 1e-5}
+# SCHEDULER_PARAMS    = {'type': 'CosineAnnealingWarmRestarts', 'T_0': 10, 'T_mult': 4, 'eta_min': 1e-5}
+
 
 # Dataset
 DATASET_ROOT_PATH   = os.path.join(os.getcwd(), 'src/datasets')
@@ -33,7 +38,8 @@ IMAGE_STD           = [0.2302, 0.2265, 0.2262]
 IMAGE_RESIZE_FOR_VIT = 224
 
 # Network
-MODEL_NAME          = 'resnet50'
+MODEL_NAME          = 'efficientnet_b0'
+# MODEL_NAME          = 'efficientnet_b7'
 
 # Compute related
 ACCELERATOR         = 'gpu'
@@ -46,6 +52,6 @@ WANDB_ENTITY        = os.environ.get('WANDB_ENTITY')
 print(f'WANDB_ENTITY: {WANDB_ENTITY}')
 WANDB_SAVE_DIR      = 'wandb/'
 WANDB_IMG_LOG_FREQ  = 50
-WANDB_NAME          = f'{MODEL_NAME}-{OPTIMIZER_PARAMS["type"]}'
-WANDB_NAME         += f'-{OPTIMIZER_PARAMS["lr"]:.2f}'
+WANDB_NAME          = f'{MODEL_NAME}-AddBatchNormWithSkip'
+# WANDB_NAME         += f'-{OPTIMIZER_PARAMS["lr"]:.2f}'
 # WANDB_NAME         += f'-{SCHEDULER_PARAMS["type"]}{OPTIMIZER_PARAMS["lr"]:.1E}'

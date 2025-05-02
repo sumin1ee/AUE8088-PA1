@@ -7,7 +7,7 @@ lightning_logs/*
 __pycache__/
 *.py[cod]
 *$py.class
-
+checkpoints/*
 # C extensions
 *.so
 

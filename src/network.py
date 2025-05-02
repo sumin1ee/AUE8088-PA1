@@ -2,7 +2,7 @@
 from termcolor import colored
 from typing import Dict
 import copy
-
+from torchvision.models import efficientnet_b1
 # PyTorch & Pytorch Lightning
 from lightning.pytorch import LightningModule
 from lightning.pytorch.loggers.wandb import WandbLogger
@@ -16,21 +16,120 @@ from src.metric import MyAccuracy, MyF1ScoreConf, MyF1ScoreOvR
 import src.config as cfg
 from src.util import show_setting
 
+class AddBatchNormWithSkip(AlexNet):
+    def __init__(self):
+        super().__init__()
+        self.block1 = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # 64x64 → 32x32
+        )
+
+        self.block2 = nn.Sequential(
+            nn.Conv2d(64, 192, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(192),
+            nn.ReLU(inplace=True),
+        )
+
+        self.downsample1 = nn.Conv2d(64, 192, kernel_size=1, stride=1)
+
+        self.block3 = nn.Sequential(
+            nn.MaxPool2d(kernel_size=2, stride=2),  # 32x32 → 16x16
+            nn.Conv2d(192, 384, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(384),
+            nn.ReLU(inplace=True),
+        )
+
+        self.block4 = nn.Sequential(
+            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+        )
+
+        self.downsample2 = nn.Conv2d(384, 256, kernel_size=1, stride=1)
+
+        self.block5 = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2)  # 16x16 → 8x8
+        )
+
+    def forward(self, x):
+        x1 = self.block1(x)
+        x2 = self.block2(x1)
+        skip1 = self.downsample1(x1)
+        x = x2 + skip1  # Skip connection after block2
+
+        x = self.block3(x)
+        x4 = self.block4(x)
+        skip2 = self.downsample2(x)
+        x = x4 + skip2  # Skip connection after block4
+
+        x = self.block5(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x
 
 # [TODO: Optional] Rewrite this class if you want
 class MyNetwork(AlexNet):
     def __init__(self):
         super().__init__()
         # [TODO] Modify feature extractor part in AlexNet
+        self.reduced_receptive_fields_features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),     # Output: 64×64
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),                    # Output: 32×32
+
+            nn.Conv2d(64, 192, kernel_size=3, stride=1, padding=1),   # Output: 32×32
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),                    # Output: 16×16
+
+            nn.Conv2d(192, 384, kernel_size=3, stride=1, padding=1),  # Output: 16×16
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),  # Output: 16×16
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),  # Output: 16×16
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2)                     # Output: 8×8
+        )
+
+        self.add_batchnorm_features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # Output: 32×32
+
+            nn.Conv2d(64, 192, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(192),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # Output: 16×16
+
+            nn.Conv2d(192, 384, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(384),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+
+            nn.MaxPool2d(kernel_size=2, stride=2)  # Output: 8×8
+        )
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # [TODO: Optional] Modify this as well if you want
-        x = self.features(x)
+        x = self.reduced_receptive_fields_features(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
-
 
 class SimpleClassifier(LightningModule):
     def __init__(self,
@@ -44,6 +143,8 @@ class SimpleClassifier(LightningModule):
         # Network
         if model_name == 'MyNetwork':
             self.model = MyNetwork()
+        elif model_name == 'AddBatchNormWithSkip':
+            self.model = AddBatchNormWithSkip()
         else:
             models_list = models.list_models()
             assert model_name in models_list, f'Unknown model name: {model_name}. Choose one from {", ".join(models_list)}'
@@ -125,3 +226,4 @@ class SimpleClassifier(LightningModule):
                 key=f'pred/val/batch{batch_idx:5d}_sample_0',
                 images=[x[0].to('cpu')],
                 caption=[f'GT: {y[0].item()}, Pred: {preds[0].item()}'])
+            
